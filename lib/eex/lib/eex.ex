@@ -217,10 +217,34 @@ defmodule EEx do
     do_eval(compiled, bindings, options)
   end
 
+  def partial_eval_string(source, bindings \\ []) do
+    {:ok, tokens} = EEx.Tokenizer.tokenize(source,1)
+    default_bindings = collect_assigns(tokens, [])
+
+    new_bindings = Keyword.merge(default_bindings, bindings)
+    eval_string(source, new_bindings)
+  end
+
   ### Helpers
 
   defp do_eval(compiled, bindings, options) do
     {result, _} = Code.eval_quoted(compiled, bindings, options)
     result
   end
+
+  defp collect_assigns([{:expr,_,_,chars} | rest], acc) do
+    assign =
+      chars
+      |> String.Chars.to_string()
+      |> String.trim()
+      |> String.to_atom()
+
+    default =
+      '<%=' ++ chars ++ '%>'
+      |> String.Chars.to_string()
+
+    collect_assigns(rest, [{assign, default}|acc])
+  end
+  defp collect_assigns([_|rest], acc), do: collect_assigns(rest, acc)
+  defp collect_assigns([], acc), do: acc
 end
